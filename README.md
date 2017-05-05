@@ -1,6 +1,6 @@
 # Heimdall
 
-Heimdall is a (crude) tool that checks AWS ELB IAM/ACM cert expiration dates. Output is in JSON via stdout, logging goes to stderr. I'm sure this will change, as it's not very convenient. It's a work-in-progress. 
+Heimdall is a simple tool that checks AWS ELB IAM/ACM cert expiration dates. Output is in JSON via stdout, logging goes to stderr. I'm sure this will change, as it's not very convenient. It's a work-in-progress. 
 
 
 ## Building
