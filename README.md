@@ -57,7 +57,7 @@ You'll need a user with API access using the following IAM policy:
 ## Usage
 
 ```shell
-./heimdall --region us-east-1 --region us-west-2 | jq .
+./heimdall --region eu-west-1 --region us-east-1 --region us-west-2 --region ap-northeast-1 | jq .
 ```
 Specify as many regions as you want with additional `--region foo` flags.
 
