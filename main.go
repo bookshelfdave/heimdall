@@ -9,45 +9,7 @@ import (
 	"github.com/op/go-logging"
 )
 
-// go get -u github.com/aws/aws-sdk-go/...
-// go get github.com/op/go-logging
-
-// {
-//     "Version": "2012-10-17",
-//     "Statement": [
-//         {
-//             "Sid": "Stmt1494008280000",
-//             "Effect": "Allow",
-//             "Action": [
-//                 "elasticloadbalancing:DescribeLoadBalancers"
-//             ],
-//             "Resource": [
-//                 "*"
-//             ]
-//         },
-//         {
-//             "Sid": "Stmt1494008362000",
-//             "Effect": "Allow",
-//             "Action": [
-//                 "acm:DescribeCertificate"
-//             ],
-//             "Resource": [
-//                 "*"
-//             ]
-//         },
-//         {
-//             "Sid": "Stmt1494008388000",
-//             "Effect": "Allow",
-//             "Action": [
-//                 "iam:GetServerCertificate"
-//             ],
-//             "Resource": [
-//                 "*"
-//             ]
-//         }
-//     ]
-// }
-
+// later, for non-AWS certs:
 // echo | timeout 5 openssl s_client -servername basket.mozilla.org -connect basket.mozilla.org111:443 2>/dev/null | openssl x509 -noout -dates
 
 var log = logging.MustGetLogger("heimdall")
