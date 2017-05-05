@@ -67,7 +67,7 @@ Output is in JSON via stdout, logging goes to stderr. I prefer to use [jq](https
 
 It's not fast, it's not beautiful. It works for what I need. 
 
-#License
+# License
 
 http://www.apache.org/licenses/LICENSE-2.0.html
 
