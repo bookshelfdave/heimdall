@@ -40,6 +40,7 @@ func setupLogging(logLevel logging.Level) {
 	logging.SetBackend(backend1Leveled)
 }
 
+// should be in scan.go
 func checkExpirations(allRegions []*RegionTests, warnDays int, skipExpired bool) {
 	for _, region := range allRegions {
 		log.Debugf("Region = %s\n", region.Region)

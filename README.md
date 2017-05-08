@@ -5,9 +5,16 @@ Heimdall is a simple tool that checks AWS ELB IAM/ACM cert expiration dates. Out
 
 ## Building
 
+**Go 1.8 is required to build this project.**
+
 This is a side project that I'm not putting a ton of effort into, so fetching deps/building is a bit yolo at the moment:
 
 ```
+cd $GOPATH
+mkdir -p ./src/github.com/metadave
+cd ./src/github.com/metadave
+git clone https://github.com/metadave/heimdall.git
+cd heimdall
 make deps
 make build
 ```
