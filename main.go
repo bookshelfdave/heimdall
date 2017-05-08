@@ -5,6 +5,7 @@ import (
 	"flag"
 	"fmt"
 	"os"
+	"time"
 
 	"github.com/op/go-logging"
 )
@@ -15,7 +16,9 @@ import (
 var log = logging.MustGetLogger("heimdall")
 
 var format = logging.MustStringFormatter(
-	`%{color}%{time:15:04:05.000} ▶ %{level:.4s} %{id:03x}%{color:reset} %{message}`,
+	`%{message}`,
+	// fancy color output:
+	//`%{color}%{time:15:04:05.000} ▶ %{level:.4s} %{id:03x}%{color:reset} %{message}`,
 )
 
 type arrayFlags []string
@@ -29,44 +32,79 @@ func (i *arrayFlags) Set(value string) error {
 	return nil
 }
 
-func setupLogging(enableDebug bool) {
+func setupLogging(logLevel logging.Level) {
 	backend1 := logging.NewLogBackend(os.Stderr, "", 0)
 	backend1Formatter := logging.NewBackendFormatter(backend1, format)
 	backend1Leveled := logging.AddModuleLevel(backend1Formatter)
-	if enableDebug {
-		backend1Leveled.SetLevel(logging.DEBUG, "")
-	} else {
-		backend1Leveled.SetLevel(logging.INFO, "")
-	}
+	backend1Leveled.SetLevel(logLevel, "")
 	logging.SetBackend(backend1Leveled)
+}
+
+func checkExpirations(allRegions []*RegionTests, warnDays int, skipExpired bool) {
+	for _, region := range allRegions {
+		log.Debugf("Region = %s\n", region.Region)
+		for _, certTest := range region.ELBs {
+			log.Debugf(" ELB = %s\n", certTest.ElbName)
+			exp := time.Until(certTest.Expiration)
+			daysUntil := int(exp.Hours() / 24)
+			if daysUntil < 0 {
+				if !skipExpired {
+					log.Errorf("[%s] %s (%s) cert has expired: %s", certTest.AWSCertType, certTest.ElbName, certTest.ElbDNS, certTest.ExpText)
+				}
+			} else if daysUntil <= warnDays {
+				log.Errorf("[%s] %s (%s) cert is expiring soon: %s", certTest.AWSCertType, certTest.ElbName, certTest.ElbDNS, certTest.ExpText)
+			}
+		}
+	}
 }
 
 func main() {
 	var regions arrayFlags
 	flag.Var(&regions, "region", "Region to scan")
-	debug := flag.Bool("debug", false, "Show debugging output")
+	warnDays := flag.Int("warn-days", 60, "Warn on certs with <= this value to expiration")
+	logLevel := flag.String("log-level", "error", "Log level (debug, info, error)")
+	dumpJson := flag.Bool("json", false, "Display query results as JSON")
+	skipExpired := flag.Bool("skip-expired", false, "Skip certs that have already expired")
 
 	flag.Parse()
 
-	setupLogging(*debug)
+	logLevels := map[string]logging.Level{
+		"debug": logging.DEBUG,
+		"info":  logging.INFO,
+		"error": logging.ERROR,
+	}
+
+	if val, ok := logLevels[*logLevel]; ok {
+		setupLogging(val)
+	} else {
+		fmt.Println("Invalid log-level")
+		os.Exit(1)
+	}
 
 	if len(regions) == 0 {
 		fmt.Println("Please specify a region")
 		os.Exit(1)
 	}
+
+	// todo: move this to scan.go
 	var allRegions []*RegionTests
 	for _, region := range regions {
 		log.Infof("Checking region %s\n", region)
 		if result, err := DoScan(region); err != nil {
-			fmt.Println("FOO")
+			log.Error(err)
 		} else {
 			allRegions = append(allRegions, result)
 		}
 	}
 
-	b, err := json.Marshal(allRegions)
-	if err != nil {
-		log.Error("error:", err)
+	checkExpirations(allRegions, *warnDays, *skipExpired)
+
+	// move this to it's own fn
+	if *dumpJson {
+		b, err := json.Marshal(allRegions)
+		if err != nil {
+			log.Error("error:", err)
+		}
+		os.Stdout.Write(b)
 	}
-	os.Stdout.Write(b)
 }
