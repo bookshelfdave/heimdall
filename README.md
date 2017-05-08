@@ -57,7 +57,11 @@ You'll need a user with API access using the following IAM policy:
 ## Usage
 
 ```shell
-./heimdall --region eu-west-1 --region us-east-1 --region us-west-2 --region ap-northeast-1 | jq .
+# The following command will show certs that are expiring in <= 30 days
+./heimdall --region us-west-2 --warn-days 30 --skip-expired
+
+# for json output:
+./heimdall --region eu-west-1 --region us-east-1 --region us-west-2 --region ap-northeast-1 --json | jq .
 ```
 Specify as many regions as you want with additional `--region foo` flags.
 
