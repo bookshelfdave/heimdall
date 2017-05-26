@@ -87,6 +87,10 @@ Specify as many regions as you want with additional `-ec2-region foo` flags.
 
 It's not fast, it's not beautiful. It works for what I need. 
 
+## TODO
+
+- General cert expiration checking via OpenSSL
+
 # License
 
 http://www.apache.org/licenses/LICENSE-2.0.html
