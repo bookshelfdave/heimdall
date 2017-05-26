@@ -8,6 +8,7 @@ import (
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/acm"
+	"github.com/aws/aws-sdk-go/service/elb"
 	"github.com/aws/aws-sdk-go/service/iam"
 )
 
@@ -17,6 +18,57 @@ type AwsCertTest struct {
 	Expiration  time.Time
 	ExpText     string
 	AWSCertType string
+}
+
+type RegionTests struct {
+	Region string
+	ELBs   []*AwsCertTest
+}
+
+func processRegionELBs(region string) (*RegionTests, error) {
+	sess, err := session.NewSession(&aws.Config{Region: aws.String(region)})
+	if err != nil {
+		log.Error("error:", err)
+	}
+
+	svc := elb.New(sess)
+	params := &elb.DescribeLoadBalancersInput{
+		LoadBalancerNames: []*string{},
+	}
+
+	resp, err := svc.DescribeLoadBalancers(params)
+
+	if err != nil {
+		log.Error(err.Error())
+		return nil, err
+	}
+	allRegionTests := RegionTests{Region: region}
+	for _, elb := range resp.LoadBalancerDescriptions {
+		log.Infof("%s @ %s", *elb.LoadBalancerName, *elb.DNSName)
+		for _, listener := range elb.ListenerDescriptions {
+			if listener.Listener.SSLCertificateId != nil {
+				log.Debugf("     Cert: %s\n", *listener.Listener.SSLCertificateId)
+				result, err := checkAWSCert(*elb.LoadBalancerName,
+					*elb.DNSName,
+					region,
+					*listener.Listener.SSLCertificateId)
+				if err == nil {
+					allRegionTests.ELBs = append(allRegionTests.ELBs, result)
+				}
+			}
+		}
+	}
+	return &allRegionTests, nil
+}
+
+func checkAWSCert(elbName string, dnsName string, region string, certARN string) (*AwsCertTest, error) {
+	s := strings.Split(certARN, "/")
+	arnPrefix, certName := s[0], s[1]
+	if strings.HasPrefix(arnPrefix, "arn:aws:acm") {
+		return processACMCert(elbName, dnsName, region, certARN)
+	} else {
+		return processIAMCert(elbName, dnsName, region, certName)
+	}
 }
 
 func processACMCert(elbName string, dnsName string, region string, certARN string) (*AwsCertTest, error) {
@@ -67,12 +119,25 @@ func processIAMCert(elbName string, dnsName string, region string, certName stri
 	return &result, nil
 }
 
-func CheckAWSCert(elbName string, dnsName string, region string, certARN string) (*AwsCertTest, error) {
-	s := strings.Split(certARN, "/")
-	arnPrefix, certName := s[0], s[1]
-	if strings.HasPrefix(arnPrefix, "arn:aws:acm") {
-		return processACMCert(elbName, dnsName, region, certARN)
-	} else {
-		return processIAMCert(elbName, dnsName, region, certName)
+func showManagedExpirations(allRegions []*RegionTests, warnDays int, skipExpired bool) {
+	for _, region := range allRegions {
+		log.Debugf("Region = %s\n", region.Region)
+		if region.ELBs == nil {
+			continue
+		}
+		for _, certTest := range region.ELBs {
+			log.Debugf(" ELB = %s\n", certTest.ElbName)
+			exp := time.Until(certTest.Expiration)
+			daysUntil := int(exp.Hours() / 24)
+			if daysUntil < 0 {
+				if !skipExpired {
+					log.Errorf("[%s] %s (%s) cert has expired: %s",
+						certTest.AWSCertType, certTest.ElbName, certTest.ElbDNS, certTest.ExpText)
+				}
+			} else if daysUntil <= warnDays {
+				log.Errorf("[%s] %s (%s) cert is expiring soon: %s (%s)",
+					certTest.AWSCertType, certTest.ElbName, certTest.ElbDNS, certTest.Expiration, certTest.ExpText)
+			}
+		}
 	}
 }

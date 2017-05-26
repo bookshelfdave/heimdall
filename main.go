@@ -5,7 +5,6 @@ import (
 	"flag"
 	"fmt"
 	"os"
-	"time"
 
 	"github.com/op/go-logging"
 )
@@ -40,28 +39,10 @@ func setupLogging(logLevel logging.Level) {
 	logging.SetBackend(backend1Leveled)
 }
 
-// should be in scan.go
-func checkExpirations(allRegions []*RegionTests, warnDays int, skipExpired bool) {
-	for _, region := range allRegions {
-		log.Debugf("Region = %s\n", region.Region)
-		for _, certTest := range region.ELBs {
-			log.Debugf(" ELB = %s\n", certTest.ElbName)
-			exp := time.Until(certTest.Expiration)
-			daysUntil := int(exp.Hours() / 24)
-			if daysUntil < 0 {
-				if !skipExpired {
-					log.Errorf("[%s] %s (%s) cert has expired: %s", certTest.AWSCertType, certTest.ElbName, certTest.ElbDNS, certTest.ExpText)
-				}
-			} else if daysUntil <= warnDays {
-				log.Errorf("[%s] %s (%s) cert is expiring soon: %s", certTest.AWSCertType, certTest.ElbName, certTest.ElbDNS, certTest.ExpText)
-			}
-		}
-	}
-}
-
 func main() {
 	var regions arrayFlags
-	flag.Var(&regions, "region", "Region to scan")
+	flag.Var(&regions, "ec2-region", "EC2 Region to scan ELBs")
+	hostsFile := flag.String("hosts", "", "Hosts file to process")
 	warnDays := flag.Int("warn-days", 60, "Warn on certs with <= this value to expiration")
 	logLevel := flag.String("log-level", "error", "Log level (debug, info, error)")
 	dumpJson := flag.Bool("json", false, "Display query results as JSON")
@@ -82,25 +63,26 @@ func main() {
 		os.Exit(1)
 	}
 
-	if len(regions) == 0 {
-		fmt.Println("Please specify a region")
-		os.Exit(1)
-	}
-
 	// todo: move this to scan.go
 	var allRegions []*RegionTests
 	for _, region := range regions {
 		log.Infof("Checking region %s\n", region)
-		if result, err := DoScan(region); err != nil {
+		if result, err := processRegionELBs(region); err != nil {
 			log.Error(err)
 		} else {
 			allRegions = append(allRegions, result)
 		}
 	}
+	if len(regions) > 0 {
+		showManagedExpirations(allRegions, *warnDays, *skipExpired)
+	}
 
-	checkExpirations(allRegions, *warnDays, *skipExpired)
+	// this is lame
+	if *hostsFile != "" {
+		checkUnmanagedExpirations(*hostsFile, *warnDays, *skipExpired)
+	}
 
-	// move this to it's own fn
+	// move this to it's own fn, or just drop it
 	if *dumpJson {
 		b, err := json.Marshal(allRegions)
 		if err != nil {
