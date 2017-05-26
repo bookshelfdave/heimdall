@@ -64,15 +64,24 @@ You'll need a user with API access using the following IAM policy:
 ## Usage
 
 ```shell
-# The following command will show certs that are expiring in <= 30 days
-./heimdall --region us-west-2 --warn-days 30 --skip-expired
+# The following command will show managed EC2 certs on ELB's (classic) that are expiring in <= 30 days
+./heimdall -ec2-region us-west-2 -warn-days 30 -skip-expired
+
+# You can specify a file containing host:port lines to check:
+./heimdall -hosts ./certhosts -warn-days 90 -skip-expired
+
+With the `certhosts` file similar to:
+
+```
+www.google.com:443
+www.mozilla.org:443
+```
+
 
 # for json output:
-./heimdall --region eu-west-1 --region us-east-1 --region us-west-2 --region ap-northeast-1 --json | jq .
+./heimdall -ec2-region eu-west-1 -ec2-region us-east-1 -ec2-region us-west-2 -ec2-region ap-northeast-1 -json | jq .
 ```
-Specify as many regions as you want with additional `--region foo` flags.
-
-Output is in JSON via stdout, logging goes to stderr. I prefer to use [jq](https://stedolan.github.io/jq/) to pretty-print the json output.
+Specify as many regions as you want with additional `-ec2-region foo` flags.
 
 ## Design
 
