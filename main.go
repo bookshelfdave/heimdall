@@ -43,6 +43,7 @@ func main() {
 	var regions arrayFlags
 	flag.Var(&regions, "ec2-region", "EC2 Region to scan ELBs")
 	hostsFile := flag.String("hosts", "", "Hosts file to process")
+	scanAllRegions := flag.Bool("all-regions", false, "Scan all EC2 regions")
 	warnDays := flag.Int("warn-days", 60, "Warn on certs with <= this value to expiration")
 	logLevel := flag.String("log-level", "error", "Log level (debug, info, error)")
 	dumpJson := flag.Bool("json", false, "Display query results as JSON")
@@ -61,6 +62,15 @@ func main() {
 	} else {
 		fmt.Println("Invalid log-level")
 		os.Exit(1)
+	}
+
+	if *scanAllRegions == true {
+		if result, err := listEC2Regions(); err != nil {
+			log.Error(err)
+			return
+		} else {
+			regions = result
+		}
 	}
 
 	// todo: move this to scan.go

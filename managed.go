@@ -8,6 +8,7 @@ import (
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/acm"
+	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/aws/aws-sdk-go/service/elb"
 	"github.com/aws/aws-sdk-go/service/iam"
 )
@@ -23,6 +24,29 @@ type AwsCertTest struct {
 type RegionTests struct {
 	Region string
 	ELBs   []*AwsCertTest
+}
+
+func listEC2Regions() ([]string, error) {
+	sess, err := session.NewSession(&aws.Config{Region: aws.String("us-east-1")})
+	if err != nil {
+		log.Error("error:", err)
+	}
+
+	var allRegions []string
+
+	svc := ec2.New(sess)
+	params := &ec2.DescribeRegionsInput{}
+	resp, err := svc.DescribeRegions(params)
+
+	if err != nil {
+		fmt.Println(err.Error())
+		return nil, err
+	}
+	for _, region := range resp.Regions {
+		log.Debug(*region.RegionName)
+		allRegions = append(allRegions, *region.RegionName)
+	}
+	return allRegions, nil
 }
 
 func processRegionELBs(region string) (*RegionTests, error) {

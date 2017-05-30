@@ -38,6 +38,16 @@ You'll need a user with API access using the following IAM policy:
             ]
         },
         {
+            "Sid": "Stmt1494008280001",
+            "Effect": "Allow",
+            "Action": [
+                "ec2:DescribeRegions"
+            ],
+            "Resource": [
+                "*"
+            ]
+        },
+        {
             "Sid": "Stmt1494008362000",
             "Effect": "Allow",
             "Action": [
@@ -66,13 +76,19 @@ You'll need a user with API access using the following IAM policy:
 The following command will show managed EC2 certs on ELB's (classic) that are expiring in <= 30 days (I call these "managed certs"):
 
 ```shell
-./heimdall -ec2-region us-west-2 -warn-days 30 -skip-expired
+heimdall -ec2-region us-west-2 -warn-days 30 -skip-expired
+```
+
+You can scan all EC2 regions as well:
+
+```
+heimdall -all-regions -warn-days 30 -skip-expired
 ```
 
 You can specify a file containing host:port lines to check (I call these "unmanaged certs"):
 
 ```shell
-./heimdall -hosts ./certhosts -warn-days 90 -skip-expired
+heimdall -hosts ./certhosts -warn-days 90 -skip-expired
 ```
 
 With the `certhosts` file similar to:
@@ -85,8 +101,7 @@ www.mozilla.org:443
 You can do "managed" and "unmanaged" certs at the same time:
 
 ```
-./heimdall -ec2-region us-west-2 -ec2-region us-east-1 -hosts ./foo -warn-days 30 -skip-expired
-
+heimdall -ec2-region us-west-2 -ec2-region us-east-1 -hosts ./foo -warn-days 30 -skip-expired
 ```
 
 ## Design
