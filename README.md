@@ -1,6 +1,6 @@
 # Heimdall
 
-Heimdall is a simple tool that checks AWS ELB IAM/ACM cert expiration dates, as well as non-AWS managed certs.
+Heimdall is a simple tool that checks AWS ELB cert expiration dates, as well as non-AWS managed certs.
 
 
 ## Building
